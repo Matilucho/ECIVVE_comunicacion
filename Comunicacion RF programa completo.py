@@ -1,384 +1,178 @@
+# WATCHDOG
+from threading import Timer
+
+class Watchdog(Exception):
+    def __init__(self, timeout, userHandler=None):
+        self.timeout = timeout
+        self.handler = userHandler if userHandler else None
+        self.timer = Timer(self.timeout, self.handler)
+    
+    def start(self):
+        self.timer.start()
+
+    def reset(self):
+        self.timer.cancel()
+        self.timer = Timer(self.timeout, self.handler)
+        self.timer.start()
+
+    def stop(self):
+        self.timer.cancel()
+        
+    def addHandler(self, h):
+        self.handler = h
+        
+# declaro por adelantado para que el compilador sepa de esto en las funciones de parseo
+wdMPPT = Watchdog(3.0)
+wdKART = Watchdog(3.0)
+
+# SERIAL
+import serial
+from serial.tools import list_ports
+import re
+
+serialMPPT = None
+serialKART = None
+bufferMPPT = ""
+bufferKART = ""
+
+puerto_mppt = None
+puerto_kart = None
+available_ports = {i:p.device for i,p in enumerate(list_ports.comports())}
+if len(available_ports) > 0:
+    print("Seleccione puerto para el MPPT: " + str(available_ports))
+    j = int(input("Seleccione nro de lista (-1 para no elegir nada): "))
+    if j != -1:
+        puerto_mppt = available_ports[j]
+        del available_ports[j]
+if len(available_ports) > 0:
+    print("Seleccione puerto para el Karting: " + str(available_ports))
+    j = int(input("Seleccione nro de lista (-1 para no elegir nada): "))
+    if j != -1:
+        puerto_kart = available_ports[j]
+        del available_ports[j]
+
+if puerto_mppt:
+    serialMPPT = serial.Serial(puerto_mppt, baudrate=19200, bytesize=8, parity=serial.PARITY_NONE, stopbits=1, timeout=1)
+if puerto_kart:
+    serialKART = serial.Serial(puerto_kart, baudrate=19200, bytesize=8, parity=serial.PARITY_NONE, stopbits=1, timeout=1)
+
+V_pan, I_pan, P_pan, V_bat, I_bat, P_bat, I_load, P_load = "0"*8
+V_kart, I_kart, P_kart = "0"*3
+
+def lecturaMPPT():
+    global bufferMPPT   
+
+    try:
+        nuevo = serialMPPT.read(serialMPPT.inWaiting()).decode()
+        bufferMPPT += nuevo
+        if re.search(r"[\r\n]", nuevo):
+            parseoMPPT()
+    except:
+        pass
+
+def lecturaKART():
+    global bufferKART
+    
+    try:
+        nuevo = serialKART.read(serialKART.inWaiting()).decode()
+        bufferKART += nuevo
+        if re.search(r"[\r\n]", nuevo):
+            parseoKART()
+    except:
+        pass
+
+def parseoMPPT():
+    global V_pan, I_pan, P_pan, V_bat, I_bat, P_bat, P_load, I_load
+    global bufferMPPT
+    
+    if not re.search(r"[\r\n]", bufferMPPT):
+        V_pan = I_pan = P_pan = V_bat = I_bat = P_bat = I_load = P_load = "?"
+        bufferMPPT = ""
+        wdMPPT.reset()
+        return
+        
+    tokens = re.split(r"[\r\n]+", bufferMPPT)
+    bufferMPPT = tokens[-1]
+    
+    V_pan_f = P_pan_f = V_bat_f = I_bat_f = I_load_f = None    
+    
+    for t in tokens[0:-1]:
+        m = re.search(r"^(\S+)\s+([0-9-]+)$", t)
+        
+        if not m:
+            continue
+           
+        campo, valor = m.group(1), float(m.group(2))
+           
+        if campo == "VPV":
+            V_pan = f"{valor:.2f}"
+            V_pan_f = valor
+        elif campo == "I":
+            valor /= 1000
+            I_bat = f"{valor:.2f}"
+            I_bat_f = valor
+        elif campo == "V":
+            valor /= 1000
+            V_bat = f"{valor:.2f}"
+            V_bat_f = valor
+        elif campo == "PPV":
+            P_pan = f"{valor:.2f}"
+            P_pan_f = valor
+        elif campo == "IL":
+            valor /= 1000
+            I_load = f"{valor:.2f}"
+            I_load_f = valor
+       
+    if V_pan_f or P_pan_f:
+        I_pan_f = (P_pan_f if P_pan_f else float(P_pan)) / (V_pan_f if V_pan_f else float(V_pan))
+        I_pan = f"{I_pan_f:.2f}"
+    
+    if V_bat_f or I_bat_f:
+        P_bat_f = (I_bat_f if I_bat_f else float(I_bat)) * (V_bat_f if V_bat_f else float(V_bat))
+        P_bat = f"{P_bat_f:.2f}"
+    
+    if I_load_f or V_bat_f:
+        P_load_f = (V_bat_f if V_bat_f else float(V_bat)) * (I_load_f if I_load_f else float(I_load))
+        P_load = f"{P_load_f:.2f}"
+        
+    wdMPPT.reset()
+    
+def parseoKART():
+    global V_kart, I_kart, P_kart
+    global bufferKART
+    
+    if not re.search(r"[\r\n]", bufferKART):
+        V_kart, I_kart, P_kart = 3*"?"
+        bufferKART = ""
+        wdKART.reset()
+        return
+    
+    tokens = re.split(r"[\r\n]+", bufferKART)
+    bufferKART = tokens[-1]
+    
+    for t in tokens[0:-1]:
+        m = re.search(r"^(\S+)\s+([0-9-]+)$", t)
+        if not m:
+            continue
+           
+        campo, valor = m.group(1), float(m.group(2))
+           
+        if campo == "V":
+            V_kart = f"{valor:.2f}"
+        elif campo == "I":
+            I_kart = f"{valor:.2f}"
+        elif campo == "P":
+            P_kart = f"{valor:.2f}"
+    
+    wdKART.reset()
+    
+# TKINTER
 import tkinter
-import string
 from tkinter import messagebox
 from tkinter import PhotoImage
-import serial
-from datetime import datetime
-
 mw=tkinter.Tk()
 mw.title("Interfaz gráfica")
 #mw.geometry("400x300")
-
-txt=open("MPPT.log",mode="r")
-txtKART=open("MPPT_20240515.log",mode="r")
-
-'''
-PORT = 'COM6'
-
-# abre port serie indicado
-ser = serial.Serial(PORT, timeout=0.2)
-
-# configura port
-ser.baudrate = 9600
-ser.bytesize = 8
-ser.parity = 'N'
-ser.stopbits = 1
-'''
-#global RecibidoMPPT
-RecibidoMPPT=""
-RecibidoKART=""
-tiempoMPPT=datetime.now()
-tiempoKART=datetime.now()
-
-V_pan="0"
-I_pan="0"
-P_pan="0"
-V_bat="0"
-I_bat="0"
-P_bat="0"
-V_load="0"
-I_load="0"
-P_load="0"
-
-V_kart="0"
-I_kart="0"
-P_kart="0"
-P_ef="0"
-
-def lecturaMPPT():
-    global RecibidoMPPT
-    m=txt.read(1)
-    
-    
-    
-    '''
-    m = ser.read(1) #Leo hasta 70 caracteres de lo que recibo
-    if m !=b'':
-        Recibido=m.decode()
-    '''
-    
-    
-    if m!=b'':
-        RecibidoMPPT=RecibidoMPPT+m
-        if m=='\n':
-            #print("renglon")
-            #print(RecibidoMPPT)
-            parseoMPPT(RecibidoMPPT)
-            RecibidoMPPT=""
-
-    mw.after(2, lecturaMPPT)
-mw.after(2, lecturaMPPT)
-
-
-def lecturaKART():
-    global RecibidoKART
-    m=txtKART.read(1)
-    
- 
-    
-    '''
-    m = ser.read(1) #Leo hasta 70 caracteres de lo que recibo
-    if m !=b'':
-        Recibido=m.decode()
-    
-    '''
-    
-    if m!=b'':
-        RecibidoKART=RecibidoKART+m
-        if m=='\n':
-            print("renglonkart")
-            print(RecibidoKART)
-            parseoKART(RecibidoKART)
-            RecibidoKART=""
-
-    mw.after(3, lecturaKART)
-mw.after(3, lecturaKART)
-
-
-
-
-def parseoMPPT(RecibidoMPPT):
-    global V_pan
-    global I_pan
-    #global P_pan
-    global V_bat
-    global P_bat
-    global I_load
-    #global RecibidoMPPT
-    global tiempoMPPT
-    #print(tiempoMPPT)
-    m=datetime.now()
-    dif=m-tiempoMPPT
-    #print(dif)
-    if dif.total_seconds()<1.5:
-        tiempoMPPT=m
-        #print("Todo correcto\n")
-    else:
-        print("TIMEOUT")
-        V_pan="?"
-        I_pan="?"
-        P_pan="?"
-        V_bat="?"   
-        P_bat="?"
-        I_load="?"
-        return 0
-        
-  
-    
-    
-
-    RecibidoMPPT=RecibidoMPPT.replace("","")  
-    #Hago la verificación de lo recibido
-    calcverif=RecibidoMPPT[1:-4] #Sin contar el signo pesos y la verificación recibida
-    suma=0
-    
-    for n in calcverif:
-        suma=suma^ord(n)
-    verif=RecibidoMPPT[-4:-2]
-    suma=str(hex(suma)) #lo pasamos a string para poder sacar el 0x del formato hexa
-    suma=suma[2:4]
-    
-   #Si la verificación es correcta
-    #if(suma==verif):
-    if(1):
-        #print(RecibidoMPPT)
-        #Formato RecibidoMPPT $T:ttt.tt;H:hhh.hh;P:ppp.pp;G:ggg.gg;D:ddd.dd;O:ooo.oo&
-        
-        #V_pan=RecibidoMPPT[37:42]
-        #I_pan=RecibidoMPPT[45:46]    
-        #V_bat=RecibidoMPPT[51:52]    
-        #P_bat=RecibidoMPPT[57:58]
-        #I_load=RecibidoMPPT[103:104]
-        
-        
-        
-        
-       
-        
-   #########################################################################################################
-        #####   VER CUALES SON LOS BORDES, LOS TAB Y LOS /N   ###############################
-        guardado=0
-        i=0
-        while i <len(RecibidoMPPT)-1:           
-            if(RecibidoMPPT[i-1]=='\n' and RecibidoMPPT[i]=='V' and RecibidoMPPT[i+1]=='\t' and guardado==0):
-                i=i+2                             #### esto es para poder arrancar a escribir luego de los tabs
-                guardado=1
-                V_pan=""
-            if(RecibidoMPPT[i]=='I' and RecibidoMPPT[i+1]=='	'and guardado==0):
-                i=i+2
-                guardado=2
-                I_pan=""
-            if(RecibidoMPPT[i]=='V' and RecibidoMPPT[i+1]=='P' and RecibidoMPPT[i+2]=='V' and RecibidoMPPT[i+3]=='	'and guardado==0):
-                i=i+4
-                guardado=3
-                V_bat=""
-            if(RecibidoMPPT[i]=='P'and RecibidoMPPT[i+1]=='P' and RecibidoMPPT[i+2]=='V' and RecibidoMPPT[i+3]=='	'and guardado==0):
-                i=i+4
-                guardado=4
-                P_bat=""
-            if(RecibidoMPPT[i]=='I'and RecibidoMPPT[i+1]=='L' and RecibidoMPPT[i+2]=='	'and guardado==0):
-                i=i+3
-                guardado=5
-                I_load=""
-            
-            
-            if guardado==1:
-                V_pan=V_pan+RecibidoMPPT[i]
-                if RecibidoMPPT[i+1]=='\n':
-                    guardado=0
-                    V_pan=str(float(V_pan)/1000)
-                    
-            if guardado==2:
-                I_pan=I_pan+RecibidoMPPT[i]
-                if RecibidoMPPT[i+1]=='\n':
-                    guardado=0
-                    I_pan=str(float(I_pan)/1000)
-                    
-            if guardado==3:
-                V_bat=V_bat+RecibidoMPPT[i]
-                if RecibidoMPPT[i+1]=='\n':
-                    guardado=0
-                    
-            if guardado==4:
-                P_bat=P_bat+RecibidoMPPT[i]
-                if RecibidoMPPT[i+1]=='\n':
-                    guardado=0
-                    
-            if guardado==5:
-                I_load=I_load+RecibidoMPPT[i]
-                if RecibidoMPPT[i+1]=='\n':
-                    guardado=0
-                    I_load=str(float(I_load)/1000)
-                    
-            i=i+1    
-        #I_pan=I_pan.replace("\n","")
-        #I_pan=str(float(I_pan)/1000)
-        #print(I_pan*3)
-        #P_pan=str(I_panF*V_panF)
-        #print(float(I_pan)*3)
-        #I_pan=str(float(I_pan)/1000)
-        #P_pan=str(float(I_pan)*float(V_pan))
-        
-                
-    #mw.after(100, lectura) #Que la funcion se ejecute cada 100 ms
-    
-#mw.after(100, lectura)
-
-
-def parseoKART(RecibidoKART):
-    
-    global V_kart
-    global I_kart
-    global P_kart
-    #global P_bat
-    #global I_load
-    #global RecibidoMPPT
-    global tiempoKART
-    #print(tiempoKART)
-    m=datetime.now()
-    dif=m-tiempoKART
-    #print(dif)
-    if dif.total_seconds()<1.5:
-        tiempoKART=m
-        #print("Todo correcto\n")
-    else:
-        #print("TIMEOUT")
-        V_kart="?"
-        I_kart="?"   
-        V_kart="?"   
-        #P_bat="?"
-        #I_load="?"
-        return 0
-        
-  
-    
-    
-
-    RecibidoKART=RecibidoKART.replace("","")  
-    #Hago la verificación de lo recibido
-    calcverif=RecibidoKART[1:-4] #Sin contar el signo pesos y la verificación recibida
-    suma=0
-    
-    for n in calcverif:
-        suma=suma^ord(n)
-    verif=RecibidoKART[-4:-2]
-    suma=str(hex(suma)) #lo pasamos a string para poder sacar el 0x del formato hexa
-    suma=suma[2:4]
-    
-   #Si la verificación es correcta
-    #if(suma==verif):
-    if(1):
-        #print(RecibidoKART)
-        #Formato RecibidoKART $T:ttt.tt;H:hhh.hh;P:ppp.pp;G:ggg.gg;D:ddd.dd;O:ooo.oo&
-        
-        #V_pan=RecibidoKART[37:42]
-        #I_pan=RecibidoKART[45:46]    
-        #V_bat=RecibidoKART[51:52]    
-        #P_bat=RecibidoKART[57:58]
-        #I_load=RecibidoKART[103:104]
-        
-        
-        
-        
-        
-        
-   #########################################################################################################
-        #####   VER CUALES SON LOS BORDES, LOS TAB Y LOS /N   ###############################
-        guardado=0
-        ikart=0
-        while ikart <len(RecibidoKART)-1:           
-            if(RecibidoKART[ikart-1]=='\n' and RecibidoKART[ikart]=='V' and RecibidoKART[ikart+1]=='\t' and guardado==0):
-                ikart=ikart+2                             #### esto es para poder arrancar a escribir luego de los tabs
-                guardado=1
-                print("Leo tension kart")
-                V_kart=""
-            if(RecibidoKART[ikart]=='I' and RecibidoKART[ikart+1]=='	'and guardado==0):
-                ikart=ikart+2
-                guardado=2
-                I_kart=""
-            if(RecibidoKART[ikart]=='P'and RecibidoKART[ikart+1]=='P' and RecibidoKART[ikart+2]=='V' and RecibidoKART[ikart+3]=='	'and guardado==0):
-                ikart=ikart+4
-                guardado=4
-                P_kart=""
-            
-            
-            if guardado==1:
-                V_kart=V_kart+RecibidoKART[ikart]
-                if RecibidoKART[ikart+1]=='\n':
-                    guardado=0
-                    print(V_kart)
-                    V_kart=str(float(V_kart)/1000)
-                    
-                    
-            if guardado==2:
-                I_kart=I_kart+RecibidoKART[ikart]
-                if RecibidoKART[ikart+1]=='\n':
-                    guardado=0
-                    #I_kart=str(float(I_kart)/1000)
-                    
-            if guardado==4:
-                P_kart=P_kart+RecibidoKART[ikart]
-                if RecibidoKART[ikart+1]=='\n':
-                    guardado=0
-
-                    
-            ikart=ikart+1    
-
-       
-  
-
-
-
-
-def visualizacion():
-    global V_pan
-    global I_pan
-
-    global V_bat
-    global P_bat
-    
-    
-    global I_load
-    
-    global V_kart
-    global I_kart
-    global P_kart
-    print("muestro")
-    
-    #P_bat="150"
-    P_pan=str(f'{float(V_pan)*float(I_pan):.3f}')
-    if float(V_bat) !=0:
-        I_bat=str(float(P_bat)/float(V_bat))
-    else:
-        I_bat="0"
-    P_load=str(float(I_load)*float(V_bat))
-    P_kart="100"
-    if float(P_load) !=0:
-        P_ef=str(f'{float(P_kart)*100/float(P_load):.3f}')
-    else:
-        P_ef="0"
-    print(V_kart)
-    #V_kart="AAA"
-    #I_kart="AAA"
-    #P_kart="AAA"
-    V_panS.set(V_pan+"V")
-    I_panS.set(I_pan+"A")
-    P_panS.set(P_pan+"W")
-    V_batS.set(V_bat+"V")
-    I_batS.set(I_bat+"A")
-    P_batS.set(P_bat+"W")
-    V_loadS.set(V_bat+"V")
-    I_loadS.set(I_load+"A")
-    P_loadS.set(P_load+"W")
-    V_kartS.set(V_kart+"V")
-    I_kartS.set(I_kart+"A")
-    P_kartS.set(P_kart+"W")
-    P_efS.set(P_ef+"%")
-    mw.after(1000, visualizacion)
-
-mw.after(1000, visualizacion) #muestra los valores en pantalla cada 1 segundo
-
-mw['bg'] = '#000000'
 
 #Stringvars de lo que va a variar
 V_panS=tkinter.StringVar()
@@ -391,12 +185,33 @@ V_loadS=tkinter.StringVar()
 I_loadS=tkinter.StringVar()
 P_loadS=tkinter.StringVar()
 
-
 V_kartS=tkinter.StringVar()
 I_kartS=tkinter.StringVar()
 P_kartS=tkinter.StringVar()
 
 P_efS=tkinter.StringVar()
+
+def visualizacion():
+    global V_pan, I_pan, P_pan, V_bat, I_bat, P_bat, P_load, I_load
+    global V_kart, I_kart, P_kart
+    
+    V_panS.set(V_pan+"V")
+    I_panS.set(I_pan+"A")
+    P_panS.set(P_pan+"W")
+    V_batS.set(V_bat+"V")
+    I_batS.set(I_bat+"A")
+    P_batS.set(P_bat+"W")
+    V_loadS.set(V_bat+"V")
+    I_loadS.set(I_load+"A")
+    P_loadS.set(P_load+"W")
+    V_kartS.set(V_kart+"V")
+    I_kartS.set(I_kart+"A")
+    P_kartS.set(P_kart+"W")
+    
+    if re.search(r"[1-9]", P_load):
+        P_efS.set(f"{(float(P_kart)/float(P_load)):.2f}"+"%")
+
+mw['bg'] = '#000000'
 
 #Labels titulos
 lbl_Titulo=tkinter.Label(text="Estacion de carga Inalambrica Verde\n de Vehiculos Electricos(ECIVVE)",bg='#000000',fg='#FFFFFF',font=("Roboto Cn",14),justify="center")
@@ -478,4 +293,14 @@ img_kart=tkinter.PhotoImage(file="kart.png")
 lbl_kart=tkinter.Label(image=img_kart)
 lbl_kart.grid(row=1, column=4,rowspan=100,padx=15)
 
+# "MAIN"
+wdMPPT.addHandler(parseoMPPT)
+wdKART.addHandler(parseoKART)
+wdMPPT.start()
+wdKART.start()
+parseoMPPT()
+parseoKART()
+mw.after(lecturaMPPT, 10)
+mw.after(lecturaKART, 10)
+mw.after(visualizacion, 500)
 mw.mainloop()
