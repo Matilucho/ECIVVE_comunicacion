@@ -209,7 +209,7 @@ def visualizacion():
     P_kartS.set(P_kart+"W")
     
     if re.search(r"[1-9]", P_load):
-        P_efS.set(f"{(float(P_kart)/float(P_load)):.2f}"+"%")
+        P_efS.set(f"{(float(P_kart)/float(P_load)*100.0):.2f}"+"%")
 
 mw['bg'] = '#000000'
 
