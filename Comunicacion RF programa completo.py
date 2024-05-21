@@ -151,18 +151,16 @@ def parseoKART():
     bufferKART = tokens[-1]
     
     for t in tokens[0:-1]:
-        m = re.search(r"^(\S+)\s+([0-9-]+)$", t)
+        m = re.search(r"^([0-9-]+)\s+([0-9-]+)$", t)
         if not m:
             continue
-           
-        campo, valor = m.group(1), float(m.group(2))
-           
-        if campo == "V":
-            V_kart = f"{valor:.2f}"
-        elif campo == "I":
-            I_kart = f"{valor:.2f}"
-        elif campo == "P":
-            P_kart = f"{valor:.2f}"
+
+        V_kart_f, I_kart_f = float(m.group(1))/1000, float(m.group(2))/1000
+        P_kart_f = V_kart_f * I_kart_f
+        
+        V_kart = f"{V_kart_f:.2f}"
+        I_kart = f"{I_kart_f:.2f}"
+        P_kart = f"{P_kart_f:.2f}"
     
     wdKART.reset()
     
