@@ -40,9 +40,10 @@ V_load="0"
 I_load="0"
 P_load="0"
 
-V_kart=""
-I_kart=""
-P_kart=""
+V_kart="0"
+I_kart="0"
+P_kart="0"
+P_ef="0"
 
 def lecturaMPPT():
     global RecibidoMPPT
@@ -99,7 +100,7 @@ mw.after(3, lecturaKART)
 def parseoMPPT(RecibidoMPPT):
     global V_pan
     global I_pan
-    global P_pan
+    #global P_pan
     global V_bat
     global P_bat
     global I_load
@@ -351,6 +352,11 @@ def visualizacion():
     else:
         I_bat="0"
     P_load=str(float(I_load)*float(V_bat))
+    P_kart="100"
+    if float(P_load) !=0:
+        P_ef=str(f'{float(P_kart)*100/float(P_load):.3f}')
+    else:
+        P_ef="0"
     print(V_kart)
     #V_kart="AAA"
     #I_kart="AAA"
@@ -367,6 +373,7 @@ def visualizacion():
     V_kartS.set(V_kart+"V")
     I_kartS.set(I_kart+"A")
     P_kartS.set(P_kart+"W")
+    P_efS.set(P_ef+"%")
     mw.after(1000, visualizacion)
 
 mw.after(1000, visualizacion) #muestra los valores en pantalla cada 1 segundo
@@ -389,6 +396,7 @@ V_kartS=tkinter.StringVar()
 I_kartS=tkinter.StringVar()
 P_kartS=tkinter.StringVar()
 
+P_efS=tkinter.StringVar()
 
 #Labels titulos
 lbl_Titulo=tkinter.Label(text="Estacion de carga Inalambrica Verde\n de Vehiculos Electricos(ECIVVE)",bg='#000000',fg='#FFFFFF',font=("Roboto Cn",14),justify="center")
@@ -413,6 +421,8 @@ entry_P_batS=tkinter.Label(mw, textvar=P_batS,bg='#000000',fg='#FFFFFF')
 entry_V_loadS=tkinter.Label(mw, textvar=V_loadS,bg='#000000',fg='#FFFFFF')
 entry_I_loadS=tkinter.Label(mw, textvar=I_loadS,bg='#000000',fg='#FFFFFF')
 entry_P_loadS=tkinter.Label(mw, textvar=P_loadS,bg='#000000',fg='#FFFFFF')
+entry_P_efS=tkinter.Label(mw, textvar=P_efS,bg='#000000',fg='#FFFFFF')
+
 
 entry_V_kartS=tkinter.Label(mw, textvar=V_kartS,bg='#000000',fg='#FFFFFF')
 entry_I_kartS=tkinter.Label(mw, textvar=I_kartS,bg='#000000',fg='#FFFFFF')
@@ -420,31 +430,33 @@ entry_P_kartS=tkinter.Label(mw, textvar=P_kartS,bg='#000000',fg='#FFFFFF')
 
 
 #grids
-entry_V_panS.grid(row=2, column=0, pady=5,padx=15,sticky="SW")
-entry_I_panS.grid(row=3, column=0, pady=5,padx=15,sticky="SW")
-entry_P_panS.grid(row=4, column=0, pady=5,padx=15,sticky="SW")
+entry_V_panS.grid(row=3, column=0, pady=5,padx=15,sticky="SW")
+entry_I_panS.grid(row=4, column=0, pady=5,padx=15,sticky="SW")
+entry_P_panS.grid(row=5, column=0, pady=5,padx=15,sticky="SW")
 entry_V_batS.grid(row=7, column=0, pady=5,padx=15,sticky="SW")
 entry_I_batS.grid(row=8, column=0, pady=5,padx=15,sticky="SW")
 entry_P_batS.grid(row=9, column=0, pady=5,padx=15,sticky="SW")
-entry_V_loadS.grid(row=2, column=2, pady=5,padx=30,sticky="Sw")
-entry_I_loadS.grid(row=3, column=2, pady=5,padx=30,sticky="w")
-entry_P_loadS.grid(row=4, column=2, pady=5,padx=30,sticky="w",rowspan=1)
+entry_V_loadS.grid(row=4, column=2, pady=5,padx=30,sticky="Sw")
+entry_I_loadS.grid(row=5, column=2, pady=5,padx=30,sticky="w")
+entry_P_loadS.grid(row=6, column=2, pady=5,padx=30,sticky="nw",rowspan=1)
+entry_P_efS.grid(row=6, column=2, pady=5,padx=15,sticky="s")
+
 
 
 lbl_Titulo.grid(row=0, column=2,pady=5,padx=15)
 lbl_Titulo2.grid(row=1, column=2,pady=5,padx=15)
-lbl_V_batS.grid(row=6, column=2,pady=5,padx=15,sticky="SW")
-lbl_P_batS.grid(row=7, column=2,pady=5,padx=15,sticky="SW")
-lbl_I_loadS.grid(row=8, column=2,pady=5,padx=15,sticky="SW")
+#lbl_V_batS.grid(row=6, column=2,pady=5,padx=15,sticky="SW")
+#lbl_P_batS.grid(row=7, column=2,pady=5,padx=15,sticky="SW")
+#lbl_I_loadS.grid(row=8, column=2,pady=5,padx=15,sticky="SW")
 
 
-entry_V_kartS.grid(row=4, column=4, pady=5,padx=15,sticky="SW")
-entry_I_kartS.grid(row=5, column=4, pady=5,padx=15,sticky="SW")
-entry_P_kartS.grid(row=6, column=4, pady=5,padx=15,sticky="SW")
+entry_V_kartS.grid(row=4, column=3, pady=5,padx=15,sticky="SE")
+entry_I_kartS.grid(row=5, column=3, pady=5,padx=15,sticky="e")
+entry_P_kartS.grid(row=6, column=3, pady=5,padx=15,sticky="ne")
 
-lbl_V_kartS.grid(row=4, column=3,pady=5,padx=15,sticky="SW")
-lbl_I_kartS.grid(row=5, column=3,pady=5,padx=15,sticky="SW")
-lbl_P_kartS.grid(row=6, column=3,pady=5,padx=15,sticky="SW")
+#lbl_V_kartS.grid(row=4, column=3,pady=5,padx=15,sticky="SW")
+#lbl_I_kartS.grid(row=5, column=3,pady=5,padx=15,sticky="SW")
+#lbl_P_kartS.grid(row=6, column=3,pady=5,padx=15,sticky="SW")
 #imagenes
 img_mppt=tkinter.PhotoImage(file="MPPT.png")
 lbl_mppt=tkinter.Label(image=img_mppt)
@@ -452,18 +464,18 @@ lbl_mppt.grid(row=1, column=1,padx=30,rowspan=100)
 
 img_bat=tkinter.PhotoImage(file="bateria.png")
 lbl_bat=tkinter.Label(image=img_bat)
-lbl_bat.grid(row=6, column=0)
+lbl_bat.grid(row=6, column=0,padx=15)
 
 img_pan=tkinter.PhotoImage(file="panel.png")
 lbl_pan=tkinter.Label(image=img_pan)
-lbl_pan.grid(row=2, column=0)
+lbl_pan.grid(row=2, column=0,padx=15)
 
-img_pc=tkinter.PhotoImage(file="transferencia.png")
-lbl_pc=tkinter.Label(image=img_pc)
-lbl_pc.grid(row=2, column=2,padx=250)
+img_tf=tkinter.PhotoImage(file="transferencia.png")
+lbl_tf=tkinter.Label(image=img_tf)
+lbl_tf.grid(row=1, column=2,padx=250,rowspan=100)
 
 img_kart=tkinter.PhotoImage(file="kart.png")
 lbl_kart=tkinter.Label(image=img_kart)
-lbl_kart.grid(row=2, column=3)
+lbl_kart.grid(row=1, column=4,rowspan=100,padx=15)
 
 mw.mainloop()
