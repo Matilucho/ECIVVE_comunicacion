@@ -99,7 +99,7 @@ def parseoMPPT():
     V_pan_f = P_pan_f = V_bat_f = I_bat_f = I_load_f = None    
     
     for t in tokens[0:-1]:
-        m = re.search(r"^(\S+)\s+(-?[0-9]+)$", t)
+        m = re.search(r"^(\S+)\s+([+-]?[0-9]+)$", t)
         
         if not m:
             continue
@@ -154,7 +154,7 @@ def parseoKART():
     bufferKART = tokens[-1]
     
     for t in tokens[0:-1]:
-        m = re.search(r"^(-?[0-9]+)\s+(-?[0-9]+)$", t)
+        m = re.search(r"^([+-]?[0-9]+)\s+([+-]?[0-9]+)$", t)
         if not m:
             continue
 
@@ -211,7 +211,7 @@ def visualizacion():
     
     print("actualizando")
     
-    if re.search(r"^-?[0-9]*[1-9][0-9]*$", P_load) and re.search(r"^-?[0-9]+$", P_kart):
+    if re.search(r"^[+-]?(?:[0-9]*\.)?[0-9]+$", P_load) and (float(P_load) > 0.1) and re.search(r"^[+-]?(?:[0-9]*\.)?[0-9]+$", P_kart):
         P_efS.set(f"{(float(P_kart)/float(P_load)*100.0):.2f}"+"%")
     else:
         P_efS.set("?")
