@@ -173,7 +173,13 @@ from tkinter import messagebox
 from tkinter import PhotoImage
 mw=tkinter.Tk()
 mw.title("Interfaz gráfica")
-#mw.geometry("400x300")
+canvas_pan=tkinter.Canvas(mw,width=150, height=150)
+canvas_pan.configure(highlightbackground="black", bg="black")
+canvas_bat=tkinter.Canvas(mw,width=150, height=150)
+canvas_bat.configure(highlightbackground="black", bg="black")
+
+
+#mw.geometry("1280x720")
 
 #Stringvars de lo que va a variar
 V_panS=tkinter.StringVar()
@@ -191,6 +197,8 @@ I_kartS=tkinter.StringVar()
 P_kartS=tkinter.StringVar()
 
 P_efS=tkinter.StringVar()
+
+global f1,f2,f3,f4
 
 def visualizacion():
     global V_pan, I_pan, P_pan, V_bat, I_bat, P_bat, P_load, I_load
@@ -216,6 +224,28 @@ def visualizacion():
     else:
         P_efS.set("?")
     
+    #P_pan="200"
+    if P_pan!='?':
+        f1=canvas_pan.create_line(0,75,112.5,75,fill="green",width=5)
+        f2=canvas_pan.create_line(110,75,110,150,fill="green",arrow=tkinter.LAST,width=5)
+       
+    #else:
+       #canvas_pan.delete(f1)
+        #canvas_pan.delete(f2)
+
+    #I_bat="500"
+    if I_bat!='?':
+
+        if float(I_bat)<0:
+            f3=canvas_bat.create_line(0,80,112.5,80,fill="green",arrow=tkinter.FIRST,width=5)
+            f4=canvas_bat.create_line(110,80,110,45,fill="green",width=5)
+            
+        else :
+            f3=canvas_bat.create_line(0,80,112.5,80,fill="green",width=5)
+            f4=canvas_bat.create_line(110,80,110,45,fill="green",arrow=tkinter.LAST,width=5)
+    #else:
+       # canvas_bat.delete(f3)
+      #  canvas_bat.delete(f4)
     mw.after(500, visualizacion)
 
 mw['bg'] = '#000000'
@@ -236,32 +266,32 @@ lbl_P_kartS=tkinter.Label(text="Potencia Kart:",bg='#000000',fg='#FFFFFF')
 #labels datos variantes
 entry_V_panS=tkinter.Label(mw, textvar=V_panS,bg='#000000',fg='#FFFFFF')
 entry_I_panS=tkinter.Label(mw, textvar=I_panS,bg='#000000',fg='#FFFFFF')
-entry_P_panS=tkinter.Label(mw, textvar=P_panS,bg='#000000',fg='#FFFFFF')
+entry_P_panS=tkinter.Label(mw, textvar=P_panS,bg='#000000',fg='#FFFFFF',font=("Roboto Cn",15))
 entry_V_batS=tkinter.Label(mw, textvar=V_batS,bg='#000000',fg='#FFFFFF')
 entry_I_batS=tkinter.Label(mw, textvar=I_batS,bg='#000000',fg='#FFFFFF')
-entry_P_batS=tkinter.Label(mw, textvar=P_batS,bg='#000000',fg='#FFFFFF')
+entry_P_batS=tkinter.Label(mw, textvar=P_batS,bg='#000000',fg='#FFFFFF',font=("Roboto Cn",15))
 entry_V_loadS=tkinter.Label(mw, textvar=V_loadS,bg='#000000',fg='#FFFFFF')
 entry_I_loadS=tkinter.Label(mw, textvar=I_loadS,bg='#000000',fg='#FFFFFF')
-entry_P_loadS=tkinter.Label(mw, textvar=P_loadS,bg='#000000',fg='#FFFFFF')
-entry_P_efS=tkinter.Label(mw, textvar=P_efS,bg='#000000',fg='#FFFFFF')
+entry_P_loadS=tkinter.Label(mw, textvar=P_loadS,bg='#000000',fg='#FFFFFF',font=("Roboto Cn",15))
+entry_P_efS=tkinter.Label(mw, textvar=P_efS,bg='#000000',fg='#FFFFFF',font=("Roboto Cn",15))
 
 
 entry_V_kartS=tkinter.Label(mw, textvar=V_kartS,bg='#000000',fg='#FFFFFF')
 entry_I_kartS=tkinter.Label(mw, textvar=I_kartS,bg='#000000',fg='#FFFFFF')
-entry_P_kartS=tkinter.Label(mw, textvar=P_kartS,bg='#000000',fg='#FFFFFF')
+entry_P_kartS=tkinter.Label(mw, textvar=P_kartS,bg='#000000',fg='#FFFFFF',font=("Roboto Cn",15))
 
 
 #grids
 entry_V_panS.grid(row=3, column=0, pady=5,padx=15,sticky="SW")
 entry_I_panS.grid(row=4, column=0, pady=5,padx=15,sticky="SW")
-entry_P_panS.grid(row=5, column=0, pady=5,padx=15,sticky="SW")
-entry_V_batS.grid(row=7, column=0, pady=5,padx=15,sticky="SW")
-entry_I_batS.grid(row=8, column=0, pady=5,padx=15,sticky="SW")
-entry_P_batS.grid(row=9, column=0, pady=5,padx=15,sticky="SW")
+entry_P_panS.grid(row=4, column=0,pady=5,padx=15,sticky="E")
+entry_V_batS.grid(row=8, column=0, pady=5,padx=15,sticky="SW")
+entry_I_batS.grid(row=9, column=0, pady=5,padx=15,sticky="SW")
+entry_P_batS.grid(row=9, column=0, pady=5,padx=15,sticky="E")
 entry_V_loadS.grid(row=4, column=2, pady=5,padx=30,sticky="Sw")
 entry_I_loadS.grid(row=5, column=2, pady=5,padx=30,sticky="w")
 entry_P_loadS.grid(row=6, column=2, pady=5,padx=30,sticky="nw",rowspan=1)
-entry_P_efS.grid(row=6, column=2, pady=5,padx=15,sticky="s")
+entry_P_efS.grid(row=7, column=2, pady=5,padx=15,sticky="s")
 
 
 
@@ -279,27 +309,37 @@ entry_P_kartS.grid(row=6, column=3, pady=5,padx=15,sticky="ne")
 #lbl_V_kartS.grid(row=4, column=3,pady=5,padx=15,sticky="SW")
 #lbl_I_kartS.grid(row=5, column=3,pady=5,padx=15,sticky="SW")
 #lbl_P_kartS.grid(row=6, column=3,pady=5,padx=15,sticky="SW")
+
+
+canvas_pan.grid(row=2,column=1,columnspan=1,padx=20,sticky="W")
+canvas_bat.grid(row=7,column=1,columnspan=1,padx=20,sticky="W")
 #imagenes
 img_mppt=tkinter.PhotoImage(file="MPPT.png")
-lbl_mppt=tkinter.Label(image=img_mppt)
+lbl_mppt=tkinter.Label(image=img_mppt,highlightbackground="black",bg="black")
 lbl_mppt.grid(row=1, column=1,padx=30,rowspan=100)
 
 img_bat=tkinter.PhotoImage(file="bateria.png")
-lbl_bat=tkinter.Label(image=img_bat)
-lbl_bat.grid(row=6, column=0,padx=15)
+lbl_bat=tkinter.Label(image=img_bat,highlightbackground="black",bg="black")
+lbl_bat.grid(row=7, column=0,padx=15)
 
 img_pan=tkinter.PhotoImage(file="panel.png")
-lbl_pan=tkinter.Label(image=img_pan)
+lbl_pan=tkinter.Label(image=img_pan,highlightbackground="black",bg="black")
 lbl_pan.grid(row=2, column=0,padx=15)
 
 img_tf=tkinter.PhotoImage(file="transferencia.png")
-lbl_tf=tkinter.Label(image=img_tf)
+lbl_tf=tkinter.Label(image=img_tf,highlightbackground="black",bg="black")
 lbl_tf.grid(row=1, column=2,padx=250,rowspan=100)
 
 img_kart=tkinter.PhotoImage(file="kart.png")
-lbl_kart=tkinter.Label(image=img_kart)
+lbl_kart=tkinter.Label(image=img_kart,highlightbackground="black",bg="black")
 lbl_kart.grid(row=1, column=4,rowspan=100,padx=15)
 
+
+'''
+img_flechaabajo=tkinter.PhotoImage(file="flechaabajo.png")
+lbl_flechaabajo=tkinter.Label(image=img_flechaabajo)
+lbl_flechaabajo.grid(row=2, column=1,columnspan=1,padx=20)
+'''
 # "MAIN"
 wdMPPT.addHandler(parseoMPPT)
 wdKART.addHandler(parseoKART)
