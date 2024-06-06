@@ -236,7 +236,7 @@ def visualizacion():
     #I_bat="500"
     if I_bat!='?':
 
-        if float(I_bat)<0:
+        if float(I_bat)>0:
             f3=canvas_bat.create_line(0,80,112.5,80,fill="green",arrow=tkinter.FIRST,width=5)
             f4=canvas_bat.create_line(110,80,110,45,fill="green",width=5)
             
